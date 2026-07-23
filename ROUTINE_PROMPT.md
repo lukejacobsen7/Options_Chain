@@ -9,6 +9,22 @@ history.
 You are scanning for options that are priced cheaper than recent price action
 and news justify. Work through this in order and do not skip steps.
 
+**0. Preflight.**
+
+```
+python -m scanner.preflight
+```
+
+Read the output. It ends with `PREFLIGHT_VERDICT=READY` or `NOT_READY`.
+
+If `NOT_READY`, stop. Send one Telegram message naming exactly what is broken,
+quoting the failing lines, and do not run the scan. Blocked hosts and missing
+credentials are configuration problems, not market conditions, and a scan on a
+broken environment produces silence that looks identical to "nothing was
+cheap today". Never let those two outcomes be confused.
+
+If `READY`, continue.
+
 **1. Run the scan.**
 
 ```
