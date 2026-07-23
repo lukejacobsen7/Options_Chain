@@ -8,18 +8,33 @@ import os
 # Luke fills this in. Keep it to 10-30 names: every ticker costs a chain pull
 # and the routine has a wall-clock budget.
 WATCHLIST = [
-    "MU",
-    "NVDA",
-    "AMD",
-    "AVGO",
-    "INTC",
-    "SMH",
+    # semis and semi-adjacent
+    "NVDA", "MU", "AMD", "INTC", "AVGO", "ASML", "AMAT", "LRCX", "SNDK", "PSI",
+    # AI infra / compute
+    "CRWV", "NBIS", "IONQ", "PLTR",
+    # mega cap tech
+    "AMZN", "GOOGL", "IBM", "FFIV",
+    # financials / exchanges / crypto
+    "C", "PYPL", "COIN", "CBOE", "XLF",
+    # energy
+    "XOM", "VLO", "XLE", "OIH",
+    # autos / industrials / utilities
+    "TSLA", "RIVN", "GEV", "XLI", "XLU",
+    # broad / other
+    "SPY", "RSP", "GLD", "XLV", "SPCX",
 ]
 
 # Peer groups let a name be scored against its own cohort rather than the
 # whole market. A ticker with no group is scored on absolute signals only.
+# Groups need at least 3 members for the median to mean anything.
 PEER_GROUPS = {
-    "semis": ["MU", "NVDA", "AMD", "AVGO", "INTC", "SMH"],
+    "semis": ["NVDA", "MU", "AMD", "INTC", "AVGO", "ASML", "AMAT", "LRCX", "SNDK", "PSI"],
+    "ai_infra": ["CRWV", "NBIS", "IONQ", "PLTR", "NVDA"],
+    "megacap_tech": ["AMZN", "GOOGL", "IBM", "FFIV"],
+    "financials": ["C", "PYPL", "COIN", "CBOE", "XLF"],
+    "energy": ["XOM", "VLO", "XLE", "OIH"],
+    "autos_industrial": ["TSLA", "RIVN", "GEV", "XLI"],
+    "broad_etf": ["SPY", "RSP", "XLV", "XLU", "GLD"],
 }
 
 # ---------------------------------------------------------------------------
@@ -70,8 +85,25 @@ MIN_HISTORY_DAYS_FOR_RANK = 15
 # is just the crush that already happened.
 EARNINGS_BLACKOUT_DAYS = 3
 
-# Max candidates handed to the model per run. Keeps the judgment step focused.
-MAX_CANDIDATES = 12
+# ---------------------------------------------------------------------------
+# Run size controls
+# ---------------------------------------------------------------------------
+# With ~37 tickers, pulling every strike in the DTE band would mean tens of
+# thousands of contracts over the websocket. Filter strikes to a band around
+# spot BEFORE subscribing: anything far from the money is outside the delta
+# band anyway and would be discarded later.
+MONEYNESS_BAND = 0.25  # keep strikes within +/-25% of spot
+
+# Tickers scanned concurrently. dxfeed tolerates this fine and it keeps the
+# run inside a sane wall clock; too high and subscriptions start timing out.
+SCAN_CONCURRENCY = 6
+
+# What reaches the model. These two numbers set the token cost of a run more
+# than anything else, so keep them tight: the model needs enough contracts to
+# pick a sensible strike, not the whole surface.
+MAX_CANDIDATES = 8
+MAX_CONTRACTS_PER_CANDIDATE = 12
+MAX_HEADLINES_PER_CANDIDATE = 6
 
 # ---------------------------------------------------------------------------
 # Secrets (cloud environment variables, never committed)

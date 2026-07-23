@@ -15,7 +15,7 @@ import asyncio
 import datetime as dt
 import json
 import sys
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from . import config, news, signals, store
 from .tasty import (
@@ -29,8 +29,8 @@ from .tasty import (
 )
 
 
-async def scan_ticker(session, ticker: str) -> Dict:
-    contracts: List[Contract] = await load_chain(session, ticker)
+async def scan_ticker(session, ticker: str, spot: Optional[float]) -> Dict:
+    contracts: List[Contract] = await load_chain(session, ticker, spot)
     if not contracts:
         return {"ticker": ticker, "error": "no contracts in DTE band"}
 
@@ -77,15 +77,26 @@ async def main_async(tickers: List[str], max_candidates: int) -> Dict:
 
     session = make_session()
 
-    raw = {}
-    for ticker in tickers:
-        try:
-            raw[ticker] = await scan_ticker(session, ticker)
-        except Exception as exc:  # noqa: BLE001 - one bad ticker must not kill the run
-            print(f"[run] {ticker} failed: {exc}", file=sys.stderr)
-            raw[ticker] = {"ticker": ticker, "error": str(exc)}
-
+    # Spot first: the moneyness filter in load_chain depends on it, and that
+    # filter is what keeps a 37-name watchlist from pulling tens of thousands
+    # of contracts over the websocket.
     spots = await underlying_quote(session, tickers)
+    missing_spot = [t for t in tickers if t not in spots]
+    if missing_spot:
+        print(f"[run] no spot for {', '.join(missing_spot)}, full chain pull", file=sys.stderr)
+
+    semaphore = asyncio.Semaphore(config.SCAN_CONCURRENCY)
+
+    async def guarded(ticker: str):
+        async with semaphore:
+            try:
+                return await scan_ticker(session, ticker, spots.get(ticker))
+            except Exception as exc:  # noqa: BLE001 - one bad ticker must not kill the run
+                print(f"[run] {ticker} failed: {exc}", file=sys.stderr)
+                return {"ticker": ticker, "error": str(exc)}
+
+    results = await asyncio.gather(*(guarded(t) for t in tickers))
+    raw = {r["ticker"]: r for r in results}
 
     # ATM IV for every ticker first, since peer-relative needs the whole cohort.
     atm_by_ticker = {}
@@ -177,8 +188,13 @@ async def main_async(tickers: List[str], max_candidates: int) -> Dict:
                 },
                 "earnings_date": sig.earnings_date.isoformat() if sig.earnings_date else None,
                 "quant_reasons": sig.reasons,
-                "news": headlines.get(ticker, [])[:8],
-                "contracts": [contract_payload(c) for c in tradeable[:40]],
+                "news": headlines.get(ticker, [])[: config.MAX_HEADLINES_PER_CANDIDATE],
+                "contracts": [
+                    contract_payload(c)
+                    for c in signals.select_for_model(
+                        tradeable, config.MAX_CONTRACTS_PER_CANDIDATE
+                    )
+                ],
             }
         )
 

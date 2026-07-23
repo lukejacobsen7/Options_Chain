@@ -41,6 +41,13 @@ def _fmt(value, spec="{:.2f}", dash="-"):
     return dash if value is None else spec.format(value)
 
 
+def _strike(value) -> str:
+    """Strikes render bare: 12 not 12.00, 12.5 not 12.50."""
+    if value is None:
+        return "-"
+    return f"{value:.10g}"
+
+
 def format_alert(
     contract: Contract,
     direction: str,
@@ -62,9 +69,8 @@ def format_alert(
     return "\n".join(
         [
             f"{contract.underlying}  {direction}  {exp} ({contract.dte}d)",
-            "",
-            f"Strike {_fmt(contract.strike)}          Δ {_fmt(contract.delta, '{:.4f}')}",
-            f"Last {_fmt(contract.last)}          Chg {_fmt(contract.change, '{:+.2f}')}",
+            f"Strike {_strike(contract.strike)}          Δ {_fmt(contract.delta, '{:.4f}')}",
+            f"Last {_fmt(contract.last)}          Chg {_fmt(contract.change)}",
             f"Bid {_fmt(contract.bid)} / Ask {_fmt(contract.ask)}   Mid {_fmt(contract.mid)}",
             f"Vol {_fmt(contract.volume, '{:.0f}')}    OI {_fmt(contract.open_interest, '{:.0f}')}    IV {iv_pct}",
             be_line,

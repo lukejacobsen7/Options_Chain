@@ -247,6 +247,31 @@ def build_signals(
     return sig
 
 
+def select_for_model(contracts: List[Contract], limit: int) -> List[Contract]:
+    """Pick the contracts worth showing the model.
+
+    Balanced across calls and puts, favouring the 35-delta area where the
+    liquidity and the leverage both tend to be. Skew often means only one side
+    is cheap, so handing over calls only would prejudge the trade.
+    """
+    if len(contracts) <= limit:
+        return contracts
+
+    def rank(c: Contract) -> float:
+        return abs(abs(c.delta) - 0.35)
+
+    calls = sorted([c for c in contracts if c.option_type == "C"], key=rank)
+    puts = sorted([c for c in contracts if c.option_type == "P"], key=rank)
+
+    out: List[Contract] = []
+    while len(out) < limit and (calls or puts):
+        if calls:
+            out.append(calls.pop(0))
+        if len(out) < limit and puts:
+            out.append(puts.pop(0))
+    return out[:limit]
+
+
 def eligible_contracts(contracts: List[Contract]) -> List[Contract]:
     """Liquidity gate plus the delta band. Runs before anything expensive."""
     out = []

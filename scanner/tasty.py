@@ -104,17 +104,31 @@ def make_session() -> Session:
     return Session(config.TASTY_CLIENT_SECRET, config.TASTY_REFRESH_TOKEN)
 
 
-async def load_chain(session: Session, underlying: str) -> List[Contract]:
-    """Fetch the chain skeleton for one underlying, filtered to our DTE band."""
+async def load_chain(
+    session: Session, underlying: str, spot: Optional[float] = None
+) -> List[Contract]:
+    """Chain skeleton for one underlying, filtered to our DTE band.
+
+    When `spot` is known, strikes outside the moneyness band are dropped here,
+    before anything is subscribed. On a name like SPY that is the difference
+    between hydrating a few hundred contracts and several thousand.
+    """
     chain = await get_option_chain(session, underlying)
     today = dt.date.today()
     out: List[Contract] = []
+
+    lo = hi = None
+    if spot:
+        lo = spot * (1 - config.MONEYNESS_BAND)
+        hi = spot * (1 + config.MONEYNESS_BAND)
 
     for expiration, options in chain.items():
         dte = (expiration - today).days
         if not (config.MIN_DTE <= dte <= config.MAX_DTE):
             continue
         for opt in options:
+            if lo is not None and not (lo <= float(opt.strike_price) <= hi):
+                continue
             out.append(
                 Contract(
                     underlying=underlying,
