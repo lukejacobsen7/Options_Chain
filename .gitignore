@@ -5,3 +5,8 @@ __pycache__/
 out/
 *.json.local
 .venv/
+
+# Local MCP config: the cloud routine talks to Supabase via supabase-py with
+# the service_role key, not MCP. A committed .mcp.json would make cloud runs
+# try to load an OAuth server that cannot authenticate headlessly.
+.mcp.json
