@@ -33,9 +33,23 @@ script's. For each candidate ask:
   that is quiet with quiet options is not.
 - Is the move explained? If the name ran 6% on nothing in the headlines, that
   is unexplained movement and the cheap IV is probably a trap, not an edge.
-- Is there a known event ahead that the IV is not pricing? Check the earnings
-  date field. Anything inside the blackout was already dropped, but a print at
-  the edge of the window still matters.
+- Is there a known event ahead that the IV is not pricing? The scan only knows
+  about **earnings**, and earnings are not the only catalyst. Before accepting
+  a cheap-IV candidate, think about whether one of these is sitting inside the
+  contract's expiry window:
+  - investor day, analyst day, capital markets day
+  - product launch or scheduled announcement
+  - regulatory or legal decision
+  - lockup expiry or index inclusion (relevant for recent listings like SPCX)
+  - a macro event the name is levered to (Fed meeting, CPI, OPEC for energy)
+
+  If one exists and IV is low, that is usually the market knowing something the
+  scan does not. Reject it. The headlines in the bundle are the main clue, so
+  read them for scheduled forward events, not just for what already happened.
+
+- Does the name have enough history for the signal to mean anything? Recent
+  listings show `hv30: null` and `iv_rank: null`. A cheap-looking IV/HV ratio
+  built on three weeks of bars is close to noise. Weight those down.
 - Which side is actually cheap? Skew tells you whether calls or puts are the
   underpriced leg. Do not default to buying calls because the tape is green.
 

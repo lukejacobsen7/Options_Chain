@@ -35,6 +35,10 @@ PEER_GROUPS = {
     "energy": ["XOM", "VLO", "XLE", "OIH"],
     "autos_industrial": ["TSLA", "RIVN", "GEV", "XLI"],
     "broad_etf": ["SPY", "RSP", "XLV", "XLU", "GLD"],
+    # Newly listed / high beta. SPCX (SpaceX, listed 2026) has a short price
+    # history, so HV30 and IV rank stay null until enough bars exist. The vol
+    # math returns None rather than guessing on a thin sample.
+    "new_listing_highbeta": ["SPCX", "CRWV", "NBIS", "IONQ", "RIVN"],
 }
 
 # ---------------------------------------------------------------------------
