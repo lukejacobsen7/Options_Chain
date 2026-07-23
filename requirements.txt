@@ -1,0 +1,3 @@
+tastytrade>=13.2,<14
+supabase>=2.9
+requests>=2.32
