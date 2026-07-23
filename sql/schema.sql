@@ -89,3 +89,26 @@ join bounds b using (ticker);
 -- ---------------------------------------------------------------------------
 alter table iv_history  enable row level security;
 alter table alerts_sent enable row level security;
+
+-- A view has no RLS of its own, and by default executes with its creator's
+-- privileges. Without this, iv_rank_current would read iv_history rows that
+-- RLS is supposed to hide. security_invoker makes it run as the caller.
+alter view iv_rank_current set (security_invoker = true);
+
+-- Projects created with "Enable automatic RLS" get a SECURITY DEFINER event
+-- trigger function that is granted to PUBLIC, anon, and authenticated. Event
+-- triggers fire through the DDL machinery rather than EXECUTE grants, so
+-- revoking these keeps the behaviour and drops it off the REST surface.
+-- Safe to skip if the function does not exist on your project.
+do $$
+begin
+    if exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public' and p.proname = 'rls_auto_enable'
+    ) then
+        revoke execute on function public.rls_auto_enable() from public;
+        revoke execute on function public.rls_auto_enable() from anon;
+        revoke execute on function public.rls_auto_enable() from authenticated;
+    end if;
+end $$;
