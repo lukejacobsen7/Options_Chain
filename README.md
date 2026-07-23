@@ -88,13 +88,23 @@ environment uses Trusted network access, which blocks everything outside its
 package-registry allowlist. Set network access to Custom and allow:
 
 ```
+api.tastyworks.com
 api.tastytrade.com
-tasty-live-web.dxfeed.com
+*.dxfeed.com
 data.alpaca.markets
 finnhub.io
 api.telegram.org
 <your-project>.supabase.co
 ```
+
+Note the hosts, verified against tastytrade SDK 13.2.0 rather than guessed:
+REST is `api.tastyworks.com`, not `api.tastytrade.com` (the brand and the API
+domain differ). `api.tastytrade.com` is kept only as a redirect fallback.
+
+The dxfeed host is not hardcoded anywhere. `DXLinkStreamer` calls
+`/api-quote-tokens` and connects to whatever `dxlink-url` comes back, so the
+wildcard is deliberate: pinning a single dxfeed hostname breaks the moment
+tastytrade points that field somewhere else.
 
 Keep "include default list of common package managers" checked so `pip` still
 works. A blocked host returns 403 with `x-deny-reason: host_not_allowed`, and
