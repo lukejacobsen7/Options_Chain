@@ -11,6 +11,18 @@ and news justify. Work through this in order and do not skip steps.
 
 **0. Preflight.**
 
+First make sure the dependencies are actually present. The environment's setup
+script normally installs them, but it runs before this repository is cloned and
+can fail silently on images where the system Python is externally managed:
+
+```
+python3 -c "import tastytrade, supabase, requests" \
+  || python3 -m pip install --break-system-packages -r requirements.txt \
+  || python3 -m pip install -r requirements.txt
+```
+
+Then:
+
 ```
 python -m scanner.preflight
 ```
