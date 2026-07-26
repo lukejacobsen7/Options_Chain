@@ -44,7 +44,13 @@ def check_host(label, url, ok_codes):
     service itself is fine here; we are testing the network, not the creds.
     """
     try:
-        resp = requests.get(url, timeout=TIMEOUT)
+        # Do not follow redirects. We are testing whether the egress policy lets
+        # us reach THIS host, and a 3xx is already proof that it does. Following
+        # it moves the test to whatever host the redirect names, which is a
+        # different question and a different allowlist entry: api.telegram.org
+        # 302s to core.telegram.org, so following the hop reported the whole
+        # Telegram dependency as blocked while sendMessage was working fine.
+        resp = requests.get(url, timeout=TIMEOUT, allow_redirects=False)
     except requests.exceptions.RequestException as exc:
         return False, f"unreachable: {type(exc).__name__}"
 
