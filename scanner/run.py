@@ -72,8 +72,18 @@ async def main_async(tickers: List[str], max_candidates: int) -> Dict:
     if missing:
         return {"error": f"missing env vars: {', '.join(missing)}"}
 
-    if not store.health_check():
-        return {"error": "supabase unreachable (free-tier project may be paused)"}
+    # Supabase is history and dedupe, not the scan itself. A paused free-tier
+    # project used to abort the whole run, which meant a storage outage and a
+    # genuinely quiet market produced the same silence. Degrade instead: the
+    # four day-one signals (IV/HV, term structure, skew, peer-relative) need no
+    # banked history at all, so the scan is still worth running without it.
+    supabase_ok = store.health_check()
+    if not supabase_ok:
+        print(
+            "[run] supabase unreachable - scanning anyway. IV rank will be null "
+            "and alert dedupe is OFF, so a repeat alert is possible.",
+            file=sys.stderr,
+        )
 
     session = make_session()
 
@@ -109,7 +119,7 @@ async def main_async(tickers: List[str], max_candidates: int) -> Dict:
             if iv:
                 atm_by_ticker[ticker] = iv
 
-    history = store.iv_history_bulk(tickers)
+    history = store.iv_history_bulk(tickers) if supabase_ok else {}
 
     # Where Supabase has not banked enough snapshots yet, try seeding IV history
     # from dxfeed's daily candles so IV rank is live on day one.
@@ -199,14 +209,20 @@ async def main_async(tickers: List[str], max_candidates: int) -> Dict:
         )
 
     # Always bank the IV observation, even for names we skip. History is the
-    # whole point of the nightly cadence.
-    store.record_iv_snapshot(snapshot_rows)
+    # whole point of the nightly cadence. Skipped when Supabase is down; the
+    # scan itself does not depend on it.
+    if supabase_ok:
+        store.record_iv_snapshot(snapshot_rows)
 
     candidates.sort(key=lambda c: c["cheap_score"], reverse=True)
 
     return {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "tickers_scanned": len(raw),
+        # Surfaced so the routine says so in its summary instead of quietly
+        # sending a possible duplicate.
+        "supabase_available": supabase_ok,
+        "dedupe_active": supabase_ok,
         "iv_history_days_banked": {t: len(h) for t, h in history.items()},
         "candidates": candidates[:max_candidates],
     }

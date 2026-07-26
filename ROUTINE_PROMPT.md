@@ -17,9 +17,15 @@ can fail silently on images where the system Python is externally managed:
 
 ```
 python3 -c "import tastytrade, supabase, requests" \
-  || python3 -m pip install --break-system-packages -r requirements.txt \
-  || python3 -m pip install -r requirements.txt
+  || python3 -m pip install --ignore-installed --break-system-packages \
+       "PyJWT>=2.10" "cryptography>=42" -r requirements.txt \
+  || python3 -m pip install --ignore-installed \
+       "PyJWT>=2.10" "cryptography>=42" -r requirements.txt
 ```
+
+The `PyJWT>=2.10` line is not optional. Debian preinstalls PyJWT 2.7.0 with no
+RECORD file, so pip cannot uninstall it when supabase asks for a newer pin — it
+aborts the entire install and tastytrade silently never lands.
 
 Then:
 

@@ -23,7 +23,7 @@ HOSTS = [
     ("tastytrade REST", "https://api.tastyworks.com/", (200, 401, 403, 404)),
     ("alpaca news", "https://data.alpaca.markets/v1beta1/news", (200, 401, 403)),
     ("finnhub", "https://finnhub.io/api/v1/quote?symbol=AAPL", (200, 401, 403)),
-    ("telegram", "https://api.telegram.org/", (200, 302, 404)),
+    ("telegram", "https://api.telegram.org/", (200, 301, 302, 404)),
 ]
 
 REQUIRED = [
@@ -42,9 +42,15 @@ def check_host(label, url, ok_codes):
 
     Any HTTP response at all proves the allowlist let us out. 401/403 from the
     service itself is fine here; we are testing the network, not the creds.
+
+    Redirects are deliberately NOT followed. api.telegram.org/ 302s to
+    core.telegram.org, which is not on the allowlist, so following it produced a
+    403 and preflight reported Telegram as blocked while the bot API it actually
+    sends through was fine. A redirect proves the host answered, which is the
+    whole question here.
     """
     try:
-        resp = requests.get(url, timeout=TIMEOUT)
+        resp = requests.get(url, timeout=TIMEOUT, allow_redirects=False)
     except requests.exceptions.RequestException as exc:
         return False, f"unreachable: {type(exc).__name__}"
 
