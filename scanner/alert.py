@@ -1,4 +1,9 @@
-"""Telegram alert formatting and delivery.
+"""Alert formatting and publication.
+
+Alerts are published into the routine's own session transcript, not to an
+outside chat. The push notification for the run is the doorway; tapping it
+opens the session, where the full assessment and the research behind it are
+readable and can be discussed with Claude directly.
 
 Message layout is fixed by Luke's spec: the tastytrade chain row fields, plus
 breakeven and the direction (buy/sell, call/put).
@@ -10,12 +15,8 @@ the mid: ask for buys, bid for sells. An optimistic breakeven is a lie.
 import datetime as dt
 from typing import Optional
 
-import requests
-
-from . import config, store
+from . import store
 from .tasty import Contract
-
-TELEGRAM_URL = "https://api.telegram.org/bot{token}/sendMessage"
 
 BUY_CALL = "BUY CALL"
 BUY_PUT = "BUY PUT"
@@ -80,21 +81,18 @@ def format_alert(
     )
 
 
-def send(text: str) -> bool:
-    if not (config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID):
-        print("[alert] telegram not configured, printing instead:\n" + text)
-        return False
-    try:
-        resp = requests.post(
-            TELEGRAM_URL.format(token=config.TELEGRAM_BOT_TOKEN),
-            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": text},
-            timeout=20,
-        )
-        resp.raise_for_status()
-        return True
-    except Exception as exc:  # noqa: BLE001
-        print(f"[alert] telegram send failed: {exc}")
-        return False
+ALERT_BANNER = "=" * 46
+
+
+def publish(text: str) -> bool:
+    """Print the alert so it lands in the routine's session transcript.
+
+    Stdout is the delivery channel now. There is no network hop, so unlike the
+    old Telegram send this cannot half-fail: if the scan produced an alert, the
+    alert is in the session.
+    """
+    print(f"\n{ALERT_BANNER}\n{text}\n{ALERT_BANNER}\n")
+    return True
 
 
 def send_if_new(
@@ -103,14 +101,13 @@ def send_if_new(
     rationale: str,
     spot: Optional[float] = None,
 ) -> bool:
-    """Format, dedupe, send, and record. Returns True if a message went out."""
+    """Format, dedupe, publish, and record. True if an alert was published."""
     if store.already_alerted(contract.occ_symbol, direction):
-        print(f"[alert] skipping duplicate {contract.occ_symbol} {direction}")
+        print(f"[alert] skipping duplicate {contract.occ_symbol} {direction} (alerted within 48h)")
         return False
 
     text = format_alert(contract, direction, rationale, spot)
-    if not send(text):
-        return False
+    publish(text)
 
     store.record_alert(
         {

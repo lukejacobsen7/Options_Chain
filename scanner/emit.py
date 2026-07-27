@@ -1,4 +1,4 @@
-"""Send one alert. Called by the routine's model step after it picks winners.
+"""Publish one alert into the session. Called by the routine's model step.
 
 Usage:
     python -m scanner.emit --contract '<json from the candidate bundle>' \
@@ -9,7 +9,10 @@ Usage:
 
 The contract JSON is copied verbatim out of run.py's output, so the alert
 reflects the prices the scan actually saw. If the run is more than a few
-minutes old, pass --refresh to re-pull the quote before sending.
+minutes old, pass --refresh to re-pull the quote first.
+
+The alert prints to stdout, so it becomes part of the routine's session
+transcript. Tapping the run's push notification opens that transcript.
 """
 
 import argparse
@@ -53,14 +56,14 @@ async def refresh(contract: Contract) -> Contract:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Send one options alert")
+    parser = argparse.ArgumentParser(description="Publish one options alert")
     parser.add_argument("--ticker", required=True)
     parser.add_argument("--contract", required=True, help="contract JSON from run.py")
     parser.add_argument("--direction", required=True, choices=list(alert.DIRECTIONS))
     parser.add_argument("--rationale", required=True)
     parser.add_argument("--spot", type=float, default=None)
     parser.add_argument("--refresh", action="store_true", help="re-pull quote first")
-    parser.add_argument("--dry-run", action="store_true", help="print, do not send")
+    parser.add_argument("--dry-run", action="store_true", help="print without deduping or recording")
     args = parser.parse_args()
 
     try:
@@ -74,15 +77,15 @@ def main():
     if args.refresh:
         contract = asyncio.run(refresh(contract))
         if not contract.passes_liquidity():
-            print("refreshed quote no longer passes the liquidity gate, not sending")
+            print("refreshed quote no longer passes the liquidity gate, dropping this one")
             sys.exit(0)
 
     if args.dry_run:
         print(alert.format_alert(contract, args.direction, args.rationale, args.spot))
         return
 
-    sent = alert.send_if_new(contract, args.direction, args.rationale, args.spot)
-    print("sent" if sent else "not sent (duplicate or delivery failure)")
+    published = alert.send_if_new(contract, args.direction, args.rationale, args.spot)
+    print("published" if published else "not published (duplicate within 48h)")
 
 
 if __name__ == "__main__":

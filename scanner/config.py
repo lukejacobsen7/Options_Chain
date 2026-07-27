@@ -134,7 +134,5 @@ def missing_secrets():
         "TASTY_REFRESH_TOKEN": TASTY_REFRESH_TOKEN,
         "SUPABASE_URL": SUPABASE_URL,
         "SUPABASE_KEY": SUPABASE_KEY,
-        "TELEGRAM_BOT_TOKEN": TELEGRAM_BOT_TOKEN,
-        "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID,
     }
     return [k for k, v in required.items() if not v]
