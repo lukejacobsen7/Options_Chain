@@ -47,6 +47,27 @@ class Contract:
     theta: Optional[float] = None
     vega: Optional[float] = None
 
+    # Dollars per one point of quoted premium. Equity options quote per share
+    # against 100 shares, so 100 is the right default and the equity path keeps
+    # behaving exactly as before. Futures options override it per product:
+    # MES 5, MNQ 2. Same arithmetic either way, no special cases.
+    multiplier: float = 100.0
+    root_symbol: Optional[str] = None
+    exercise_style: Optional[str] = None
+    settlement_type: Optional[str] = None
+
+    @property
+    def cost_usd(self) -> Optional[float]:
+        """What one contract costs to buy, in dollars, at the ask.
+
+        The ask, not the mid. This is the number that decides whether a trade
+        fits the account, and an optimistic version of it is worse than none.
+        For a long option it is also the maximum loss.
+        """
+        if self.ask is None:
+            return None
+        return round(self.ask * self.multiplier, 2)
+
     @property
     def mid(self) -> Optional[float]:
         if self.bid is None or self.ask is None:

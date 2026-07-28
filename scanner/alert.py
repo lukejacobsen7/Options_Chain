@@ -67,18 +67,27 @@ def format_alert(
     exp = contract.expiration.strftime("%b %-d '%y")
     iv_pct = "-" if contract.iv is None else f"{contract.iv * 100:.2f}%"
 
-    return "\n".join(
-        [
-            f"{contract.underlying}  {direction}  {exp} ({contract.dte}d)",
-            f"Strike {_strike(contract.strike)}          Δ {_fmt(contract.delta, '{:.4f}')}",
-            f"Last {_fmt(contract.last)}          Chg {_fmt(contract.change)}",
-            f"Bid {_fmt(contract.bid)} / Ask {_fmt(contract.ask)}   Mid {_fmt(contract.mid)}",
-            f"Vol {_fmt(contract.volume, '{:.0f}')}    OI {_fmt(contract.open_interest, '{:.0f}')}    IV {iv_pct}",
-            be_line,
-            "",
-            f"WHY: {rationale}",
-        ]
-    )
+    lines = [
+        f"{contract.underlying}  {direction}  {exp} ({contract.dte}d)",
+        f"Strike {_strike(contract.strike)}          Δ {_fmt(contract.delta, '{:.4f}')}",
+        f"Last {_fmt(contract.last)}          Chg {_fmt(contract.change)}",
+        f"Bid {_fmt(contract.bid)} / Ask {_fmt(contract.ask)}   Mid {_fmt(contract.mid)}",
+        f"Vol {_fmt(contract.volume, '{:.0f}')}    OI {_fmt(contract.open_interest, '{:.0f}')}    IV {iv_pct}",
+        be_line,
+    ]
+
+    # Futures options are quoted in index points, so the quote alone does not
+    # say what the trade costs -- 12.00 is $60 on MES and $24 on MNQ. Only added
+    # when the multiplier is not the equity default, so the approved equity
+    # alert layout is unchanged.
+    if contract.multiplier != 100.0 and contract.cost_usd is not None:
+        cost = f"Cost ${contract.cost_usd:,.2f}/contract  (${contract.multiplier:g}/pt)"
+        if direction.startswith("BUY"):
+            cost += f"   MAX LOSS ${contract.cost_usd:,.2f}"
+        lines.append(cost)
+
+    lines += ["", f"WHY: {rationale}"]
+    return "\n".join(lines)
 
 
 ALERT_BANNER = "=" * 46
