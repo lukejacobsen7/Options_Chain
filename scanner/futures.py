@@ -32,7 +32,7 @@ def _bare(product: str) -> str:
     return product.lstrip("/")
 
 
-def front_futures(session: Session, products: List[str]) -> Dict[str, Future]:
+async def front_futures(session: Session, products: List[str]) -> Dict[str, Future]:
     """The currently active contract month for each product.
 
     Futures roll, so this cannot be hardcoded. Prefer the contract the exchange
@@ -40,7 +40,7 @@ def front_futures(session: Session, products: List[str]) -> Dict[str, Future]:
     passed yet, which is what active month means anyway when the flag is absent.
     """
     codes = [_bare(p) for p in products]
-    result = Future.get(session, product_codes=codes)
+    result = await Future.get(session, product_codes=codes)
     if isinstance(result, Future):
         result = [result]
 
@@ -128,9 +128,9 @@ async def _chain(session: Session, product: str):
     guess.
     """
     try:
-        return get_future_option_chain(session, product)
+        return await get_future_option_chain(session, product)
     except Exception:  # noqa: BLE001 - fall through to the other convention
-        return get_future_option_chain(session, _bare(product))
+        return await get_future_option_chain(session, _bare(product))
 
 
 def dollars(points: Optional[float], multiplier: float) -> Optional[float]:
