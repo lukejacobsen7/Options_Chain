@@ -110,7 +110,7 @@ async def main_async(products: List[str], max_candidates: int) -> Dict:
 
     session = make_session()
 
-    fronts = front_futures(session, products)
+    fronts = await front_futures(session, products)
     unresolved = [p for p in products if p not in fronts]
     if unresolved:
         print(f"[futures] no active contract for {', '.join(unresolved)}", file=sys.stderr)
