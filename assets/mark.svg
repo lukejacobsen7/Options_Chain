@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Options_Chain mark">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f1113"/>
+      <stop offset="1" stop-color="#1b2126"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#g)"/>
+  <g transform="scale(1.6000)">
+    <path d="M20 122 H140" stroke="#2f363c" stroke-width="4" stroke-linecap="round"/>
+    <path d="M26 46 C 54 46, 62 100, 80 100 C 98 100, 106 46, 134 46"
+          fill="none" stroke="#2BD9FF" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="80" cy="100" r="8" fill="#2BD9FF" opacity="0.45"/>
+    <circle cx="121" cy="56" r="11" fill="#FFB74D"/>
+    <path d="M121 50 v8" stroke="#0f1113" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="121" cy="63" r="2.4" fill="#0f1113"/>
+  </g>
+</svg>
